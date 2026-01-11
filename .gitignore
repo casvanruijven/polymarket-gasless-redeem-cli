@@ -1,7 +1,8 @@
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
 .env.*.local
+.encrypted_keys
 
 # Node.js
 node_modules/
