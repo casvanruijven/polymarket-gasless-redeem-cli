@@ -42,10 +42,12 @@
 
 Before you begin, ensure you have the following installed:
 
-- **Python 3.8+** (uses only standard library, no external dependencies)
-- **Node.js 18+** and npm
+- **Node.js 18+** and npm (required)
+- **Python 3.8+** (optional - only needed for `--interval` scheduling feature)
 - **Polymarket Builder API credentials** (API key, secret, and passphrase)
 - **Wallet private key** and **proxy wallet address** (Funder Address)
+
+> 💡 **Note**: Python is optional. If you only need one-time redemptions or prefer to use cron/Task Scheduler for automation, you can use Node.js alone.
 
 ### Getting Your Credentials
 
@@ -291,25 +293,53 @@ The CLI follows these steps:
 - **CTF (Conditional Tokens Framework)** - Binary markets with YES/NO outcomes
 - **Negative Risk** - Markets with negative risk positions
 
+### Architecture: Node.js vs Python
+
+This tool has two components:
+
+| Component | Language | Purpose | Required? |
+|-----------|----------|---------|-----------|
+| `redeem.js` | Node.js | Core engine - handles all API calls, encryption, and transactions | ✅ **Yes** |
+| `redeem_cli.py` | Python | Convenience wrapper - adds built-in `--interval` scheduling | ❌ **Optional** |
+
+**Why Python?** The Python CLI was added for ease of use - it provides built-in interval scheduling without needing to configure cron jobs or Task Scheduler. If you're comfortable with system scheduling tools, you can use Node.js directly and skip Python entirely.
+
+**Node.js Only (no Python needed):**
+```bash
+node redeem.js --check    # Check positions
+node redeem.js            # Redeem positions
+# Use cron (Linux/Mac) or Task Scheduler (Windows) for automation
+```
+
+**With Python (built-in scheduling):**
+```bash
+python redeem_cli.py --interval 15  # Runs every 15 minutes automatically
+```
+
 ### Transaction Flow
 
 ```
-┌─────────────┐
-│   CLI App   │
-│  (Python)   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  redeem.js  │
-│  (Node.js)  │
-└──────┬──────┘
-       │
-       ├──► Polymarket Data API (fetch positions)
-       │
-       └──► Builder Relayer (gasless transactions)
-                │
-                └──► Polygon Network
+┌─────────────────────────────────────────────┐
+│  Option A: Python CLI (optional)            │
+│  - Provides --interval scheduling           │
+│  - Prompts password once, keeps in memory   │
+└──────────────────┬──────────────────────────┘
+                   │ (calls as subprocess)
+                   ▼
+┌─────────────────────────────────────────────┐
+│  redeem.js (Node.js) - REQUIRED             │
+│  - Encrypted key management                 │
+│  - Polymarket API integration               │
+│  - Transaction building & submission        │
+└──────────────────┬──────────────────────────┘
+                   │
+       ┌───────────┴───────────┐
+       ▼                       ▼
+ Polymarket Data API    Builder Relayer
+ (fetch positions)      (gasless transactions)
+                              │
+                              ▼
+                       Polygon Network
 ```
 
 ---
