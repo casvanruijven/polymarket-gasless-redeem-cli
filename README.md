@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#-license)
 
 ---
 
@@ -743,7 +743,7 @@ For issues related to:
 - [Polymarket Documentation](https://docs.polymarket.com)
 - [Builder Relayer Client](https://github.com/Polymarket/builder-relayer-client)
 - [Polygon Network](https://polygon.technology/)
-- [Ethers.js Documentation](https://docs.ethers.io/)
+- [Viem Documentation](https://viem.sh/)
 
 ---
 
@@ -758,6 +758,7 @@ For issues related to:
 - ✅ **Input validation** - Proper bytes32 validation for condition IDs
 - 🚦 **Rate limiting** - Built-in API rate limiting
 - 📊 **Structured logging** - Enhanced logging without sensitive data exposure
+- ⚡ **Migrated to Viem** - Replaced ethers.js with viem for modern Ethereum interactions
 
 ### Version 1.0.0 (2026-01-10)
 
