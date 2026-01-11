@@ -90,6 +90,9 @@ class RedemptionCLI:
             if self.password:
                 env['REDEEM_PASSWORD'] = self.password
             
+            # On Windows, npx is a .cmd script and requires shell=True
+            use_shell = sys.platform == "win32"
+            
             result = subprocess.run(
                 args,
                 cwd=SCRIPT_DIR,
@@ -98,7 +101,8 @@ class RedemptionCLI:
                 encoding='utf-8',
                 errors='replace',
                 env=env,
-                timeout=115
+                timeout=115,
+                shell=use_shell
             )
             return {
                 "output": result.stdout + result.stderr,
@@ -362,11 +366,12 @@ For more information, see README.md
             ["node", "--version"],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            shell=(sys.platform == "win32")
         )
         if result.returncode != 0:
             raise FileNotFoundError
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         print("ERROR: Node.js is not installed or not in PATH")
         print("Please install Node.js from https://nodejs.org/")
         sys.exit(1)
