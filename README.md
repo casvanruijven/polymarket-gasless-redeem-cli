@@ -33,7 +33,7 @@
 - 🔍 **Check Mode** - Check for redeemable positions without redeeming
 - 💻 **CLI Interface** - Simple command-line interface with comprehensive help
 - 📊 **Detailed Logging** - Full transaction history with PolygonScan links
-- 🔒 **Secure** - Environment-based credential management
+- 🔒 **Secure** - AES-256-GCM encrypted credential storage
 - 🌐 **Cross-Platform** - Works on Windows, Linux, and macOS
 
 ---
@@ -49,9 +49,17 @@ Before you begin, ensure you have the following installed:
 
 ### Getting Your Credentials
 
-1. **Polymarket Builder API**: Get your API credentials from [Polymarket Settings → Builder Codes](https://polymarket.com/settings?tab=builder)
-2. **Proxy Wallet Address**: This is your Polymarket proxy wallet address (Funder Address)
-3. **Private Key**: Your wallet's private key (keep this secure!)
+You'll need 5 pieces of information:
+
+| Credential | Where to Find It |
+|------------|------------------|
+| **Private Key** | Export from your wallet (MetaMask → Account Details → Export Private Key). This is the EOA wallet linked to your Polymarket account. |
+| **Proxy Wallet Address** | Your Polymarket "Funder Address" - visible in your Polymarket deposit/withdraw page or account settings. This is NOT your MetaMask address. |
+| **Builder API Key** | [Polymarket Settings → Builder Codes](https://polymarket.com/settings?tab=builder) - Create a new API key |
+| **Builder API Secret** | Shown once when you create the API key (save it!) |
+| **Builder API Passphrase** | You set this when creating the API key |
+
+> ⚠️ **Important**: The **Proxy Wallet Address** is your Polymarket-specific address (starts with `0x`), not your MetaMask/EOA address. You can find it in your Polymarket account under deposit/withdraw settings.
 
 ---
 
@@ -60,8 +68,8 @@ Before you begin, ensure you have the following installed:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd polymarket-redemption-service
+git clone https://github.com/NocodeSolutions/polymarket-gasless-redeem-cli.git
+cd polymarket-gasless-redeem-cli
 ```
 
 ### Step 2: Install Node.js Dependencies
@@ -81,18 +89,23 @@ This will install:
 Run the secure setup wizard to store your credentials:
 
 ```bash
-npm run setup
-# or
 node redeem.js --setup
 ```
 
 The wizard will prompt you for:
-- Your wallet private key
-- Your Polymarket proxy wallet address (Funder Address)
-- Your Builder API key, secret, and passphrase
-- A password to encrypt your credentials
 
-> 🔐 **Security**: Your credentials are encrypted with AES-256-GCM and stored in `.encrypted_keys`. The password is required each time you run redemptions.
+| Prompt | What to Enter |
+|--------|---------------|
+| Wallet private key | Your EOA private key (from MetaMask) - starts with `0x` |
+| Proxy wallet address | Your Polymarket Funder Address - starts with `0x` |
+| Builder API key | From [Polymarket Builder Codes](https://polymarket.com/settings?tab=builder) |
+| Builder API secret | The secret shown when you created the API key |
+| Builder API passphrase | The passphrase you set when creating the API key |
+| Encryption password | **Create a strong password** - you'll need this to run redemptions |
+
+> 🔐 **Security**: Your credentials are encrypted with AES-256-GCM and stored in `.encrypted_keys`. 
+> - **One-time mode**: Password prompted each run
+> - **Interval mode**: Password prompted once at startup, kept in memory for the session
 
 ---
 
@@ -303,6 +316,8 @@ The CLI follows these steps:
 
 ## 🖥️ Running as a Service
 
+> ⚠️ **Note**: For automated services, set the `REDEEM_PASSWORD` environment variable to avoid interactive password prompts.
+
 ### Linux/macOS (systemd)
 
 Create a systemd service file at `/etc/systemd/system/polymarket-gasless-redeem-cli.service`:
@@ -317,6 +332,7 @@ Type=simple
 User=your_user
 WorkingDirectory=/path/to/polymarket-gasless-redeem-cli
 Environment="PATH=/usr/bin:/usr/local/bin"
+Environment="REDEEM_PASSWORD=your_encryption_password"
 ExecStart=/usr/bin/python3 /path/to/polymarket-gasless-redeem-cli/redeem_cli.py --interval 15
 Restart=always
 RestartSec=10
@@ -326,6 +342,8 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 ```
+
+> 🔒 **Security Tip**: For production, consider using systemd's `EnvironmentFile` directive to load the password from a secured file with restricted permissions.
 
 Enable and start the service:
 
@@ -345,7 +363,7 @@ sudo journalctl -u polymarket-gasless-redeem-cli -f
 
 ```bash
 npm install -g pm2
-pm2 start redeem_cli.py --name polymarket-gasless-redeem-cli --interpreter python3 -- --interval 15
+REDEEM_PASSWORD="your_password" pm2 start redeem_cli.py --name polymarket-gasless-redeem-cli --interpreter python3 -- --interval 15
 pm2 save
 pm2 startup
 ```
@@ -359,6 +377,7 @@ Create `/etc/supervisor/conf.d/polymarket-gasless-redeem-cli.conf`:
 command=/usr/bin/python3 /path/to/polymarket-gasless-redeem-cli/redeem_cli.py --interval 15
 directory=/path/to/polymarket-gasless-redeem-cli
 user=your_user
+environment=REDEEM_PASSWORD="your_encryption_password"
 autostart=true
 autorestart=true
 stderr_logfile=/var/log/polymarket-gasless-redeem-cli.err.log
@@ -543,7 +562,7 @@ For issues related to:
 
 - **Polymarket API**: Check [Polymarket Documentation](https://docs.polymarket.com)
 - **Builder Relayer**: Contact [Polymarket Support](https://polymarket.com/support)
-- **This CLI**: [Open an issue on GitHub](https://github.com/your-repo/issues)
+- **This CLI**: [Open an issue on GitHub](https://github.com/NocodeSolutions/polymarket-gasless-redeem-cli/issues)
 
 ---
 
@@ -558,14 +577,23 @@ For issues related to:
 
 ## 🎉 Changelog
 
-### Version 1.0.0 (2024-01-10)
+### Version 2.0.0 (2026-01-11)
+
+- 🔐 **Encrypted key storage** - AES-256-GCM encryption for all credentials
+- 🔑 **Password-based access** - Secure password protection with PBKDF2
+- ⏰ **Improved interval mode** - Password prompted once at startup
+- 🔄 **REDEEM_PASSWORD env var** - Support for fully automated services
+- ✅ **Input validation** - Proper bytes32 validation for condition IDs
+- 🚦 **Rate limiting** - Built-in API rate limiting
+- 📊 **Structured logging** - Enhanced logging without sensitive data exposure
+
+### Version 1.0.0 (2026-01-10)
 
 - ✨ Initial release
 - 🚀 Automatic and manual redemption modes
 - 🔍 Check-only mode
 - 💻 CLI interface with comprehensive help
 - 📊 Detailed logging with PolygonScan links
-- 🔒 Environment-based configuration
 - 🌐 Cross-platform support
 
 ---
