@@ -5,21 +5,12 @@ A standalone command-line tool for automatically redeeming Polymarket positions.
 
 import argparse
 import asyncio
-import logging
 import os
 import re
 import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-log = logging.getLogger("redemption_cli")
 
 # Get script directory
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -74,13 +65,8 @@ class RedemptionCLI:
     def log(self, message: str, level: str = "INFO"):
         """Log a message with timestamp."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{timestamp}] {message}")
-        if level == "ERROR":
-            log.error(message)
-        elif level == "WARNING":
-            log.warning(message)
-        else:
-            log.info(message)
+        prefix = "ERROR: " if level == "ERROR" else "WARNING: " if level == "WARNING" else ""
+        print(f"[{timestamp}] {prefix}{message}")
     
     def _run_subprocess_sync(self, args: list) -> dict:
         """Run subprocess synchronously (called in a thread)."""
