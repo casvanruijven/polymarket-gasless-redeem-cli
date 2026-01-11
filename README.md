@@ -2,6 +2,14 @@
 
 > A standalone command-line tool for automatically redeeming Polymarket positions using gasless transactions.
 
+## ⚠️ Disclaimer
+
+**This is NOT an official Polymarket library (yet).** This project is an independent and is not affiliated with, endorsed by, or maintained by Polymarket.
+
+I hope that Polymarket developers will review this code and approve it for safe use by the community. Until official approval, use at your own risk. The author is not responsible for any financial losses or issues arising from the use of this library.
+
+---
+
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#-license)
@@ -725,6 +733,8 @@ pylint redeem_cli.py
 ## 📝 License
 
 This project is provided as-is for personal use. Use at your own risk.
+
+**⚠️ Disclaimer:** This is NOT an official Polymarket library. This project is independent and is not affiliated with, endorsed by, or maintained by Polymarket. Use at your own risk. The author is not responsible for any financial losses or issues arising from the use of this library.
 
 ---
 
