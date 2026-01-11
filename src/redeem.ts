@@ -7,7 +7,57 @@
  *   npx tsx src/redeem.ts --check  # Just check, don't redeem
  *   npx tsx src/redeem.ts --setup  # Setup encrypted key storage
  *   npx tsx src/redeem.ts --reset  # Reset keys and run setup
+ *   npx tsx src/redeem.ts --help  # Show help message
  */
+
+/**
+ * Display help message and exit
+ */
+function showHelp(): void {
+  console.log(`
+Polymarket Gasless Redemption CLI v2.0
+=======================================
+
+USAGE:
+  npx tsx src/redeem.ts [OPTIONS]
+  npm run redeem [OPTIONS]
+
+OPTIONS:
+  --check          Check for redeemable positions without redeeming
+  --setup          Setup encrypted key storage (first-time setup)
+  --reset          Reset and reconfigure encrypted keys
+  --help, -h       Show this help message
+
+EXAMPLES:
+  # One-time redemption
+  npm run redeem
+  npx tsx src/redeem.ts
+
+  # Check positions without redeeming
+  npm run check
+  npx tsx src/redeem.ts --check
+
+  # Setup encrypted keys (first-time)
+  npm run setup
+  npx tsx src/redeem.ts --setup
+
+  # Reset and reconfigure keys
+  npm run reset
+  npx tsx src/redeem.ts --reset
+
+SETUP:
+  Before first use, run: npm run setup
+  This securely stores your wallet credentials with AES-256-GCM encryption.
+
+ENVIRONMENT VARIABLES:
+  REDEEM_PASSWORD    Encryption password (for automated scripts)
+  RPC_URL            Polygon RPC endpoint (optional)
+  LOG_LEVEL          Logging level: ERROR, WARN, INFO, DEBUG (optional)
+
+For more information, see README.md
+`);
+  process.exit(0);
+}
 
 import { createWalletClient, http, type Hex, type WalletClient, type Account } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -22,6 +72,11 @@ import { TransactionManager, TransactionState } from './transactionManager.js';
 import { createCtfRedeemTx, createNegRiskRedeemTx, calculateRedeemAmounts } from './transactions.js';
 import { retryWithBackoff, validators, logger, withTimeout, formatCurrency, sleep } from './utils.js';
 import type { Position, RawPositionData, MainResult, RedemptionResult, EncryptedKeys } from './types.js';
+
+// Check for help flag early (before config validation)
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp();
+}
 
 // Load environment overrides
 loadEnvironmentOverrides();

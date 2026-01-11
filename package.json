@@ -14,7 +14,8 @@
     "check": "tsx src/redeem.ts --check",
     "redeem": "tsx src/redeem.ts",
     "start": "tsx src/redeem.ts",
-    "dev": "tsx watch src/redeem.ts"
+    "dev": "tsx watch src/redeem.ts",
+    "help": "tsx src/redeem.ts --help"
   },
   "dependencies": {
     "@polymarket/builder-relayer-client": "^0.0.8",

@@ -207,6 +207,7 @@ This tool provides two ways to run redemptions:
 
 | Task | Node.js/npm Command | Python Command |
 |------|-------------------|----------------|
+| **Show help** | `npm run help` or `npx tsx src/redeem.ts --help` | `python redeem_cli.py --help` |
 | **Setup keys** | `npm run setup` | ❌ Not supported - use npm |
 | **Reset keys** | `npm run reset` | ❌ Not supported - use npm |
 | **Check positions** | `npm run check` | `python redeem_cli.py --check` |
@@ -226,11 +227,16 @@ The TypeScript implementation is the core engine. You can use it via npm scripts
 | `npm run check` | Check for redeemable positions (no redemption) | `npx tsx src/redeem.ts --check` |
 | `npm run redeem` | Redeem all available positions once | `npx tsx src/redeem.ts` |
 | `npm run start` | Same as `npm run redeem` | `npx tsx src/redeem.ts` |
+| `npm run help` | Show help message | `npx tsx src/redeem.ts --help` |
 | `npm run dev` | Run in watch mode (development) | `npx tsx watch src/redeem.ts` |
 
 #### Direct TypeScript Commands
 
 ```bash
+# Show help message
+npx tsx src/redeem.ts --help
+# or: npx tsx src/redeem.ts -h
+
 # Setup encrypted keys (one-time)
 npx tsx src/redeem.ts --setup
 
@@ -261,7 +267,9 @@ python redeem_cli.py [OPTIONS]
 | `--interval MINUTES` | Run redemption automatically every N minutes |
 | `--once` | Run redemption once and exit (default if --interval not specified) |
 | `--check` | Only check for redeemable positions, don't actually redeem |
-| `--help` | Show help message and exit |
+| `--help`, `-h` | Show help message and exit |
+
+> 💡 **Note**: Both Node.js and Python CLIs support `--help`. Use `npm run help` or `npx tsx src/redeem.ts --help` for Node.js help, and `python redeem_cli.py --help` for Python help.
 
 > ⚠️ **Note**: The Python CLI doesn't support `--setup` or `--reset` flags. Use `npm run setup` or `npx tsx src/redeem.ts --setup` for key management.
 
