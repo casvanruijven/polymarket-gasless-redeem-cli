@@ -55,13 +55,15 @@ You'll need 5 pieces of information:
 
 | Credential | Where to Find It |
 |------------|------------------|
-| **Private Key** | Export from your wallet (MetaMask → Account Details → Export Private Key). This is the EOA wallet linked to your Polymarket account. |
-| **Proxy Wallet Address** | Your Polymarket "Funder Address" - visible in your Polymarket deposit/withdraw page or account settings. This is NOT your MetaMask address. |
+| **Private Key** | Export from your Polymarket account settings (if using Polymarket custodial wallet) OR from MetaMask if you connected an external wallet. This is the EOA wallet linked to your Polymarket account. |
+| **Proxy Wallet Address** | Your Polymarket "Funder Address" - visible in your Polymarket deposit/withdraw page or account settings. This is NOT your EOA address. |
 | **Builder API Key** | [Polymarket Settings → Builder Codes](https://polymarket.com/settings?tab=builder) - Create a new API key |
 | **Builder API Secret** | Shown once when you create the API key (save it!) |
 | **Builder API Passphrase** | You set this when creating the API key |
 
-> ⚠️ **Important**: The **Proxy Wallet Address** is your Polymarket-specific address (starts with `0x`), not your MetaMask/EOA address. You can find it in your Polymarket account under deposit/withdraw settings.
+> ⚠️ **Important**: 
+> - **Private Key**: If you created a wallet through Polymarket, export it from your Polymarket account settings. If you connected MetaMask, export from MetaMask.
+> - **Proxy Wallet Address**: This is your Polymarket-specific "Funder Address" (starts with `0x`), NOT your EOA/MetaMask address. Find it in your Polymarket deposit/withdraw settings.
 
 ---
 
@@ -98,7 +100,7 @@ The wizard will prompt you for:
 
 | Prompt | What to Enter |
 |--------|---------------|
-| Wallet private key | Your EOA private key (from MetaMask) - starts with `0x` |
+| Wallet private key | Your EOA private key (from Polymarket account or MetaMask) - starts with `0x` |
 | Proxy wallet address | Your Polymarket Funder Address - starts with `0x` |
 | Builder API key | From [Polymarket Builder Codes](https://polymarket.com/settings?tab=builder) |
 | Builder API secret | The secret shown when you created the API key |
