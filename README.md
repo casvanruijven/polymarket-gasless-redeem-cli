@@ -93,19 +93,29 @@ This will install:
 
 Run the secure setup wizard to store your credentials:
 
+**Using npm (recommended):**
+```bash
+npm run setup
+```
+
+**Or using npx directly:**
 ```bash
 npx tsx src/redeem.ts --setup
-# or
-npm run setup
 ```
 
 To reconfigure your keys (delete old ones and set up new ones):
 
+**Using npm:**
 ```bash
-npx tsx src/redeem.ts --reset
-# or
 npm run reset
 ```
+
+**Or using npx directly:**
+```bash
+npx tsx src/redeem.ts --reset
+```
+
+> ⚠️ **Note**: Key setup and reset must be done using Node.js/npm commands. The Python CLI is only for running redemptions with interval scheduling.
 
 The wizard will prompt you for:
 
@@ -128,19 +138,35 @@ The wizard will prompt you for:
 
 ### Step 1: Setup Encrypted Keys (one-time)
 
+**Using npm (recommended):**
 ```bash
 npm run setup
-# or: npx tsx src/redeem.ts --setup
 ```
+
+**Or using npx directly:**
+```bash
+npx tsx src/redeem.ts --setup
+```
+
+> ⚠️ **Note**: The Python CLI doesn't support `--setup` or `--reset` flags. You must use Node.js/npm for initial setup and key management.
 
 ### Step 2: Test Your Setup
 
 Verify everything is configured correctly:
 
+**Using npm:**
 ```bash
 npm run check
-# or: npx tsx src/redeem.ts --check
-# or: python redeem_cli.py --check
+```
+
+**Or using npx directly:**
+```bash
+npx tsx src/redeem.ts --check
+```
+
+**Or using Python:**
+```bash
+python redeem_cli.py --check
 ```
 
 This will:
@@ -153,17 +179,78 @@ This will:
 
 Once verified, run a one-time redemption:
 
+**Using npm:**
 ```bash
 npm run redeem
-# or: npx tsx src/redeem.ts
-# or: python redeem_cli.py --once
+```
+
+**Or using npx directly:**
+```bash
+npx tsx src/redeem.ts
+```
+
+**Or using Python:**
+```bash
+python redeem_cli.py --once
 ```
 
 ---
 
 ## 📖 Usage
 
-### Command-Line Options
+This tool provides two ways to run redemptions:
+
+1. **Node.js/TypeScript** (`src/redeem.ts`) - Core engine, supports one-time operations
+2. **Python CLI** (`redeem_cli.py`) - Wrapper with built-in interval scheduling
+
+### Quick Reference
+
+| Task | Node.js/npm Command | Python Command |
+|------|-------------------|----------------|
+| **Setup keys** | `npm run setup` | ❌ Not supported - use npm |
+| **Reset keys** | `npm run reset` | ❌ Not supported - use npm |
+| **Check positions** | `npm run check` | `python redeem_cli.py --check` |
+| **Redeem once** | `npm run redeem` | `python redeem_cli.py --once` |
+| **Redeem every N min** | ❌ Use cron/Task Scheduler | `python redeem_cli.py --interval N` |
+
+### Node.js/TypeScript Commands
+
+The TypeScript implementation is the core engine. You can use it via npm scripts or directly with npx.
+
+#### Available npm Scripts
+
+| Command | Description | Equivalent Direct Command |
+|---------|-------------|---------------------------|
+| `npm run setup` | Setup encrypted key storage | `npx tsx src/redeem.ts --setup` |
+| `npm run reset` | Reset and reconfigure keys | `npx tsx src/redeem.ts --reset` |
+| `npm run check` | Check for redeemable positions (no redemption) | `npx tsx src/redeem.ts --check` |
+| `npm run redeem` | Redeem all available positions once | `npx tsx src/redeem.ts` |
+| `npm run start` | Same as `npm run redeem` | `npx tsx src/redeem.ts` |
+| `npm run dev` | Run in watch mode (development) | `npx tsx watch src/redeem.ts` |
+
+#### Direct TypeScript Commands
+
+```bash
+# Setup encrypted keys (one-time)
+npx tsx src/redeem.ts --setup
+
+# Reset and reconfigure keys
+npx tsx src/redeem.ts --reset
+
+# Check for redeemable positions (no redemption)
+npx tsx src/redeem.ts --check
+
+# Redeem all available positions once
+npx tsx src/redeem.ts
+```
+
+> 💡 **Note**: Node.js commands support one-time operations only. For automatic interval scheduling, use the Python CLI or configure cron/Task Scheduler.
+
+### Python CLI Commands
+
+The Python CLI provides built-in interval scheduling and is recommended for automated services.
+
+#### Command-Line Options
 
 ```bash
 python redeem_cli.py [OPTIONS]
@@ -176,39 +263,31 @@ python redeem_cli.py [OPTIONS]
 | `--check` | Only check for redeemable positions, don't actually redeem |
 | `--help` | Show help message and exit |
 
-### Usage Examples
+> ⚠️ **Note**: The Python CLI doesn't support `--setup` or `--reset` flags. Use `npm run setup` or `npx tsx src/redeem.ts --setup` for key management.
 
-#### One-Time Redemption
+#### Usage Examples
 
-Redeem all available positions once and exit:
-
+**One-Time Redemption:**
 ```bash
 python redeem_cli.py --once
 ```
 
-#### Check Mode
-
-Check for redeemable positions without redeeming:
-
+**Check Mode (no redemption):**
 ```bash
 python redeem_cli.py --check
 ```
 
-#### Automatic Redemption
-
-Run redemption automatically every 15 minutes:
-
+**Automatic Redemption (every 15 minutes):**
 ```bash
 python redeem_cli.py --interval 15
 ```
 
-Run redemption automatically every hour:
-
+**Automatic Redemption (every hour):**
 ```bash
 python redeem_cli.py --interval 60
 ```
 
-> 💡 **Note**: The CLI prompts for your encryption password once at startup. The password is kept in memory for the session, so interval mode works automatically without re-prompting.
+> 💡 **Note**: The Python CLI prompts for your encryption password once at startup. The password is kept in memory for the session, so interval mode works automatically without re-prompting.
 
 #### Using Environment Variable (for scripts/services)
 
@@ -225,12 +304,22 @@ python redeem_cli.py --interval 15
 
 Press `Ctrl+C` to gracefully stop the service.
 
+### Which Tool Should I Use?
+
+| Use Case | Recommended Tool | Command |
+|----------|----------------|---------|
+| Quick one-time redemption | Node.js (npm) | `npm run redeem` |
+| Check positions quickly | Node.js (npm) | `npm run check` |
+| Automatic interval scheduling | Python CLI | `python redeem_cli.py --interval 15` |
+| System service/daemon | Python CLI | `python redeem_cli.py --interval 15` |
+| Cron/Task Scheduler automation | Node.js (npm) | `npm run redeem` |
+
 ### Example Output
 
 ```
-==================================================
-Polymarket Gasless Redemption
-==================================================
+=======================================================
+Polymarket Gasless Redemption v2.0 (TypeScript + Viem)
+=======================================================
 EOA: 0x5047f21090Ee39896C719a232C7e8A0d6CC2F7B6
 Proxy Wallet: 0x370a1dee49ba99971a9189b90778d913a54e4e63
 
@@ -242,20 +331,25 @@ Found 3 condition(s) to redeem:
    NO: Size 0.0000, Value $0.0000 [LOSE]
    Condition Value: $10.0000
 
-Total redeemable: ~$10.0000
+Total redeemable: $10.0000
 
 Initializing gasless relayer...
-Relayer initialized.
+[OK] Relayer ready
 
-1. Redeeming: Will Bitcoin reach $100k...
+1/3. Redeeming: Will Bitcoin reach $100k by end...
    Value: $10.0000
    CTF redeem (both outcomes)
    Submitted, waiting for confirmation...
-   SUCCESS! Tx: 0x1234...abcd
-   https://polygonscan.com/tx/0x1234...abcd
+   SUCCESS! Tx: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+   https://polygonscan.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
-==================================================
+=======================================================
 Redemption complete! 3/3 successful
+
+Successful transactions:
+   1. https://polygonscan.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+   2. https://polygonscan.com/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+   3. https://polygonscan.com/tx/0x7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234
 ```
 
 ---
@@ -264,7 +358,14 @@ Redemption complete! 3/3 successful
 
 ### Encrypted Key Storage
 
-Credentials are stored securely using encrypted key storage. Run `node redeem.js --setup` to configure.
+Credentials are stored securely using encrypted key storage. Run one of these commands to configure:
+
+```bash
+npm run setup
+# or: npx tsx src/redeem.ts --setup
+```
+
+> ⚠️ **Note**: Key setup must be done using Node.js/npm. The Python CLI doesn't support setup/reset commands.
 
 ### Optional Environment Variables
 
@@ -280,14 +381,19 @@ These environment variables can optionally override default settings:
 
 ```
 polymarket-gasless-redeem-cli/
-├── redeem_cli.py          # Main Python CLI script
-├── redeem.js              # Node.js redemption script
-├── config.js              # Configuration management
-├── keyManager.js          # Encrypted key storage
-├── rateLimiter.js         # API rate limiting
-├── utils.js               # Utility functions
-├── package.json           # Node.js dependencies
+├── src/
+│   ├── redeem.ts          # Main TypeScript redemption script
+│   ├── config.ts          # Configuration management
+│   ├── keyManager.ts      # Encrypted key storage
+│   ├── rateLimiter.ts     # API rate limiting
+│   ├── transactionManager.ts  # Transaction management
+│   ├── transactions.ts   # Transaction building
+│   ├── types.ts           # TypeScript type definitions
+│   └── utils.ts           # Utility functions
+├── redeem_cli.py          # Python CLI wrapper (optional)
+├── package.json           # Node.js dependencies and scripts
 ├── requirements.txt       # Python dependencies (empty - uses stdlib)
+├── tsconfig.json          # TypeScript configuration
 ├── README.md              # This file
 └── .encrypted_keys        # Your encrypted credentials (not in git)
 ```
@@ -315,15 +421,15 @@ This tool has two components:
 
 | Component | Language | Purpose | Required? |
 |-----------|----------|---------|-----------|
-| `redeem.js` | Node.js | Core engine - handles all API calls, encryption, and transactions | ✅ **Yes** |
+| `src/redeem.ts` | TypeScript/Node.js | Core engine - handles all API calls, encryption, and transactions | ✅ **Yes** |
 | `redeem_cli.py` | Python | Convenience wrapper - adds built-in `--interval` scheduling | ❌ **Optional** |
 
 **Why Python?** The Python CLI was added for ease of use - it provides built-in interval scheduling without needing to configure cron jobs or Task Scheduler. If you're comfortable with system scheduling tools, you can use Node.js directly and skip Python entirely.
 
 **Node.js Only (no Python needed):**
 ```bash
-node redeem.js --check    # Check positions
-node redeem.js            # Redeem positions
+npm run check    # Check positions
+npm run redeem   # Redeem positions
 # Use cron (Linux/Mac) or Task Scheduler (Windows) for automation
 ```
 
@@ -343,7 +449,7 @@ python redeem_cli.py --interval 15  # Runs every 15 minutes automatically
                    │ (calls as subprocess)
                    ▼
 ┌─────────────────────────────────────────────┐
-│  redeem.js (Node.js) - REQUIRED             │
+│  src/redeem.ts (TypeScript/Node.js) - REQUIRED │
 │  - Encrypted key management                 │
 │  - Polymarket API integration               │
 │  - Transaction building & submission        │
@@ -446,23 +552,26 @@ stdout_logfile=/var/log/polymarket-gasless-redeem-cli.out.log
 #### ❌ "Encrypted keys not configured"
 
 **Solution:**
-- Run `node redeem.js --setup` to configure your credentials
+- Run `npm run setup` or `npx tsx src/redeem.ts --setup` to configure your credentials
 - Follow the setup wizard to enter your wallet and API credentials
 - Create a strong password to encrypt your keys
+- Note: Python CLI doesn't support setup - use Node.js/npm for key management
 
 #### ❌ "Invalid password or corrupted key file"
 
 **Solution:**
 - Verify you're entering the correct encryption password
-- If you forgot your password or want to reconfigure, run `node redeem.js --reset` to delete old keys and set up new ones
+- If you forgot your password or want to reconfigure, run `npm run reset` or `npx tsx src/redeem.ts --reset` to delete old keys and set up new ones
 - Ensure the key file hasn't been modified or corrupted
+- Note: Python CLI doesn't support reset - use Node.js/npm for key management
 
 #### ❌ "Redemption script not found"
 
 **Solution:**
-- Ensure `redeem.js` is in the same directory as `redeem_cli.py`
-- Check file permissions: `chmod +x redeem.js` (Linux/macOS)
-- Verify you're running the command from the project root
+- Ensure you're running commands from the project root directory
+- Verify `src/redeem.ts` exists (for Node.js) or `redeem_cli.py` exists (for Python)
+- Check file permissions: `chmod +x redeem_cli.py` (Linux/macOS) if needed
+- Ensure Node.js dependencies are installed: `npm install`
 
 #### ❌ "Script timed out"
 
@@ -540,20 +649,26 @@ This version includes significant security improvements:
 
 The system uses encrypted key storage instead of plain environment variables:
 
+**First-time setup:**
 ```bash
-# First-time setup (Node.js - required once)
-node redeem.js --setup
-
-# Reset/reconfigure keys
-node redeem.js --reset
+npm run setup
+# or: npx tsx src/redeem.ts --setup
 ```
+
+**Reset/reconfigure keys:**
+```bash
+npm run reset
+# or: npx tsx src/redeem.ts --reset
+```
+
+> ⚠️ **Important**: Key management (`--setup` and `--reset`) must be done using Node.js/npm commands. The Python CLI only supports running redemptions (`--once`, `--check`, `--interval`).
 
 ### Running Redemptions
 
-**Option 1: Node.js (one-time only)**
+**Option 1: Node.js/npm (one-time operations)**
 ```bash
-node redeem.js --check    # Check positions
-node redeem.js            # Redeem positions
+npm run check    # Check positions
+npm run redeem   # Redeem positions
 ```
 
 **Option 2: Python CLI (supports intervals)**
@@ -563,7 +678,7 @@ python redeem_cli.py --once         # Redeem once
 python redeem_cli.py --interval 15  # Redeem every 15 minutes
 ```
 
-> 💡 **Tip**: Use **Python CLI** for scheduled/automatic redemption. Use **Node.js** for quick one-time operations.
+> 💡 **Tip**: Use **Python CLI** for scheduled/automatic redemption. Use **Node.js/npm** for quick one-time operations.
 
 **Benefits:**
 - Keys are encrypted with AES-256-GCM
