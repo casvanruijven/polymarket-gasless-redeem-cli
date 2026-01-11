@@ -4,9 +4,16 @@
 
 ## ⚠️ Disclaimer
 
-**This is NOT an official Polymarket library (yet).** This project is an independent and is not affiliated with, endorsed by, or maintained by Polymarket.
+**This is NOT an official Polymarket library.** This project (`polymarket-gasless-redeem-cli`) is an independent, community-developed tool and is not affiliated with, endorsed by, or maintained by Polymarket.
 
-I hope that Polymarket developers will review this code and approve it for safe use by the community. Until official approval, use at your own risk. The author is not responsible for any financial losses or issues arising from the use of this library.
+**Important Notes:**
+- This CLI tool interacts with Polymarket's Builder Relayer API and Data API, which may change without notice
+- The code has been developed based on public Polymarket documentation and APIs, but has not been officially reviewed or approved by Polymarket
+- API endpoints, authentication methods, or transaction formats may change, potentially breaking this tool
+- While the code includes security measures (encrypted key storage, input validation, rate limiting), users should review the code before use
+- The author hopes that Polymarket developers will review this code and approve it for safe use by the community
+
+**Use at your own risk.** The author is not responsible for any issues, data loss, failed transactions, or problems arising from the use of this library. Always verify transactions on PolygonScan and test with small amounts first.
 
 ---
 
@@ -734,7 +741,7 @@ pylint redeem_cli.py
 
 This project is provided as-is for personal use. Use at your own risk.
 
-**⚠️ Disclaimer:** This is NOT an official Polymarket library. This project is independent and is not affiliated with, endorsed by, or maintained by Polymarket. Use at your own risk. The author is not responsible for any financial losses or issues arising from the use of this library.
+**⚠️ Disclaimer:** This is NOT an official Polymarket library. This project (`polymarket-gasless-redeem-cli`) is an independent, community-developed tool and is not affiliated with, endorsed by, or maintained by Polymarket. The code interacts with Polymarket's APIs which may change without notice. Use at your own risk. The author is not responsible for any issues, data loss, failed transactions, or problems arising from the use of this library.
 
 ---
 
