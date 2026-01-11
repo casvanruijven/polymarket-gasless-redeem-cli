@@ -5,6 +5,7 @@ A standalone command-line tool for automatically redeeming Polymarket positions.
 
 import argparse
 import asyncio
+import json
 import os
 import re
 import subprocess
@@ -15,6 +16,16 @@ from pathlib import Path
 # Get script directory
 SCRIPT_DIR = Path(__file__).parent.absolute()
 REDEMPTION_SCRIPT_PATH = SCRIPT_DIR / "src" / "redeem.ts"
+
+
+def output(event: str, **data):
+    """Output a JSON event to stdout."""
+    msg = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event": event,
+        **data
+    }
+    print(json.dumps(msg), flush=True)
 
 
 def load_env_file():
@@ -62,12 +73,6 @@ class RedemptionCLI:
         self._next_run_at = None
         self._last_run_at = None
     
-    def log(self, message: str, level: str = "INFO"):
-        """Log a message with timestamp."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        prefix = "ERROR: " if level == "ERROR" else "WARNING: " if level == "WARNING" else ""
-        print(f"[{timestamp}] {prefix}{message}")
-    
     def _run_subprocess_sync(self, args: list) -> dict:
         """Run subprocess synchronously (called in a thread)."""
         try:
@@ -105,7 +110,7 @@ class RedemptionCLI:
                 "returncode": -1
             }
     
-    def _parse_output(self, output: str) -> dict:
+    def _parse_output(self, raw_output: str) -> dict:
         """Parse script output and extract key information."""
         result = {
             "conditions": 0,
@@ -114,7 +119,7 @@ class RedemptionCLI:
             "transactions": []
         }
         
-        lines = output.strip().split("\n")
+        lines = raw_output.strip().split("\n")
         
         for line in lines:
             line = line.strip()
@@ -150,17 +155,17 @@ class RedemptionCLI:
     
     async def _run_redemption(self) -> dict:
         """Execute the Node.js redemption script."""
+        mode = "check" if self.check_only else "redeem"
+        
         if not REDEMPTION_SCRIPT_PATH.exists():
-            error_msg = f"Redemption script not found at {REDEMPTION_SCRIPT_PATH}"
-            self.log(error_msg, "ERROR")
+            output("error", mode=mode, error="script_not_found", message=f"Redemption script not found at {REDEMPTION_SCRIPT_PATH}")
             return {"success": False, "error": "Script not found"}
         
         args = ["npx", "tsx", "src/redeem.ts"]
         if self.check_only:
             args.append("--check")
         
-        action = "check" if self.check_only else "redemption"
-        self.log(f"Starting {action}...")
+        output("start", mode=mode)
         
         try:
             result_data = await asyncio.wait_for(
@@ -168,41 +173,41 @@ class RedemptionCLI:
                 timeout=120
             )
             
-            output = result_data["output"]
+            raw_output = result_data["output"]
             returncode = result_data["returncode"]
             
-            # Print output
-            print(output)
-            
             # Parse results
-            result = self._parse_output(output)
+            result = self._parse_output(raw_output)
             result["exit_code"] = returncode
             result["success"] = returncode == 0
+            result["mode"] = mode
+            result["raw_output"] = raw_output.strip()
             
             if result["success"]:
-                if result["conditions"] > 0:
-                    self.log(f"Found {result['conditions']} position(s) to redeem")
-                    if result["total_value"] > 0:
-                        self.log(f"Total value: ${result['total_value']:.4f}")
-                    if not self.check_only and result["redeemed"] > 0:
-                        self.log(f"Successfully redeemed {result['redeemed']} position(s)")
-                        for tx_hash in result["transactions"]:
-                            self.log(f"Tx: https://polygonscan.com/tx/{tx_hash}")
-                    elif self.check_only:
-                        self.log("Check complete")
-                else:
-                    self.log("No redeemable positions found")
+                output("result",
+                    mode=mode,
+                    success=True,
+                    positions=result["conditions"],
+                    total_value=result["total_value"],
+                    redeemed=result["redeemed"],
+                    transactions=result["transactions"]
+                )
             else:
-                action = "Check" if self.check_only else "Redemption"
-                self.log(f"{action} failed with exit code {returncode}", "ERROR")
+                output("error",
+                    mode=mode,
+                    success=False,
+                    exit_code=returncode,
+                    error="script_failed",
+                    raw_output=raw_output.strip()
+                )
             
             return result
             
         except asyncio.TimeoutError:
-            self.log("Redemption script timed out", "ERROR")
+            output("error", mode=mode, error="timeout", message="Redemption script timed out")
             return {"success": False, "error": "Timeout"}
         except Exception as e:
-            self.log(f"Failed to run redemption script: {e}", "ERROR")
+            output("error", mode=mode, error="exception", message=str(e))
             return {"success": False, "error": str(e)}
     
     async def _run_loop(self):
@@ -220,7 +225,7 @@ class RedemptionCLI:
             try:
                 # Set next run time
                 self._next_run_at = datetime.now(timezone.utc) + timedelta(seconds=interval_seconds)
-                self.log(f"Next redemption scheduled in {self.interval_minutes} minute(s)")
+                output("scheduled", next_run=self._next_run_at.isoformat(), interval_minutes=self.interval_minutes)
                 
                 await asyncio.sleep(interval_seconds)
                 
@@ -230,7 +235,7 @@ class RedemptionCLI:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.log(f"Error in redemption loop: {e}", "ERROR")
+                output("error", error="loop_error", message=str(e))
                 # Wait a minute before retrying
                 await asyncio.sleep(60)
     
@@ -243,7 +248,7 @@ class RedemptionCLI:
             # Continuous loop
             self._stop.clear()
             self._task = asyncio.create_task(self._run_loop())
-            self.log(f"Redemption CLI started (interval: {self.interval_minutes} minute(s))")
+            output("started", mode="continuous", interval_minutes=self.interval_minutes)
             try:
                 await self._task
             except asyncio.CancelledError:
@@ -258,17 +263,14 @@ class RedemptionCLI:
                 await self._task
             except asyncio.CancelledError:
                 pass
-        self.log("Redemption CLI stopped")
+        output("stopped")
 
 
 def check_key_setup():
     """Check if encrypted keys have been set up."""
     key_file = SCRIPT_DIR / ".encrypted_keys"
     if not key_file.exists():
-        print("ERROR: Encrypted keys not configured.")
-        print("\nPlease run key setup first:")
-        print("  npx tsx src/redeem.ts --setup")
-        print("\nThis will securely store your wallet credentials.")
+        output("error", error="keys_not_configured", message="Encrypted keys not configured. Run: npx tsx src/redeem.ts --setup")
         sys.exit(1)
 
 
@@ -276,10 +278,12 @@ def prompt_password() -> str:
     """Prompt user for encryption password."""
     import getpass
     try:
-        password = getpass.getpass("Enter encryption password: ")
+        # Password prompt goes to stderr so it doesn't mix with JSON output
+        print("Enter encryption password: ", file=sys.stderr, end="", flush=True)
+        password = getpass.getpass("")
         return password
     except (KeyboardInterrupt, EOFError):
-        print("\nCancelled.")
+        output("cancelled")
         sys.exit(0)
 
 
@@ -337,7 +341,7 @@ For more information, see README.md
     # Determine mode
     if args.interval is not None:
         if args.interval < 1:
-            print("ERROR: Interval must be at least 1 minute")
+            output("error", error="invalid_interval", message="Interval must be at least 1 minute")
             sys.exit(1)
         interval_minutes = args.interval
     else:
@@ -358,21 +362,18 @@ For more information, see README.md
         if result.returncode != 0:
             raise FileNotFoundError
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-        print("ERROR: Node.js is not installed or not in PATH")
-        print("Please install Node.js from https://nodejs.org/")
+        output("error", error="node_not_found", message="Node.js is not installed or not in PATH")
         sys.exit(1)
     
-    # Check if redeem.js exists
+    # Check if redeem.ts exists
     if not REDEMPTION_SCRIPT_PATH.exists():
-        print(f"ERROR: Redemption script not found at {REDEMPTION_SCRIPT_PATH}")
-        print("Please ensure redeem.js is in the same directory as redeem_cli.py")
+        output("error", error="script_not_found", message=f"Redemption script not found at {REDEMPTION_SCRIPT_PATH}")
         sys.exit(1)
     
     # Prompt for password (required for automated operation)
     # Check environment first, then prompt
     password = os.environ.get('REDEEM_PASSWORD')
     if not password:
-        print("Password required to decrypt wallet credentials.")
         password = prompt_password()
     
     # Create and run CLI
@@ -383,19 +384,11 @@ For more information, see README.md
     )
     
     try:
-        if interval_minutes is None:
-            print("Running one-time redemption...")
-        else:
-            print(f"Starting automatic redemption CLI (interval: {interval_minutes} minute(s))")
-            print("Press Ctrl+C to stop")
-        
         asyncio.run(cli.start())
     except KeyboardInterrupt:
-        print("\nStopping redemption CLI...")
+        output("interrupted")
         asyncio.run(cli.stop())
-        print("CLI stopped.")
 
 
 if __name__ == "__main__":
     main()
-
