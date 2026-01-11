@@ -85,21 +85,24 @@ npm install
 This will install:
 - `@polymarket/builder-relayer-client` - For gasless transactions
 - `@polymarket/builder-signing-sdk` - For API signing
-- `ethers` - Ethereum library
-- `dotenv` - Environment variable management
+- `viem` - Modern Ethereum library (replaces ethers.js)
+- `tsx` - TypeScript runtime (development dependency)
+- `typescript` - TypeScript compiler (development dependency)
 
 ### Step 3: Configure Encrypted Key Storage
 
 Run the secure setup wizard to store your credentials:
 
 ```bash
-node redeem.js --setup
+npx tsx src/redeem.ts --setup
+# or
+npm run setup
 ```
 
 To reconfigure your keys (delete old ones and set up new ones):
 
 ```bash
-node redeem.js --reset
+npx tsx src/redeem.ts --reset
 # or
 npm run reset
 ```
@@ -126,7 +129,8 @@ The wizard will prompt you for:
 ### Step 1: Setup Encrypted Keys (one-time)
 
 ```bash
-node redeem.js --setup
+npm run setup
+# or: npx tsx src/redeem.ts --setup
 ```
 
 ### Step 2: Test Your Setup
@@ -134,8 +138,9 @@ node redeem.js --setup
 Verify everything is configured correctly:
 
 ```bash
-python redeem_cli.py --check
-# or: node redeem.js --check
+npm run check
+# or: npx tsx src/redeem.ts --check
+# or: python redeem_cli.py --check
 ```
 
 This will:
@@ -149,8 +154,9 @@ This will:
 Once verified, run a one-time redemption:
 
 ```bash
-python redeem_cli.py --once
-# or: node redeem.js
+npm run redeem
+# or: npx tsx src/redeem.ts
+# or: python redeem_cli.py --once
 ```
 
 ---

@@ -23,7 +23,7 @@ log = logging.getLogger("redemption_cli")
 
 # Get script directory
 SCRIPT_DIR = Path(__file__).parent.absolute()
-REDEMPTION_SCRIPT_PATH = SCRIPT_DIR / "redeem.js"
+REDEMPTION_SCRIPT_PATH = SCRIPT_DIR / "src" / "redeem.ts"
 
 
 def load_env_file():
@@ -165,7 +165,7 @@ class RedemptionCLI:
             self.log(error_msg, "ERROR")
             return {"success": False, "error": "Script not found"}
         
-        args = ["node", "redeem.js"]
+        args = ["npx", "tsx", "src/redeem.ts"]
         if self.check_only:
             args.append("--check")
         
@@ -277,7 +277,7 @@ def check_key_setup():
     if not key_file.exists():
         print("ERROR: Encrypted keys not configured.")
         print("\nPlease run key setup first:")
-        print("  node redeem.js --setup")
+        print("  npx tsx src/redeem.ts --setup")
         print("\nThis will securely store your wallet credentials.")
         sys.exit(1)
 
@@ -316,7 +316,7 @@ Examples:
   python redeem_cli.py --interval 60
 
 Setup:
-  Before first use, run: node redeem.js --setup
+  Before first use, run: npx tsx src/redeem.ts --setup
   This securely stores your wallet credentials with encryption.
 
 For more information, see README.md
