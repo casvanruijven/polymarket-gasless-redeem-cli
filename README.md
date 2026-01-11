@@ -55,15 +55,15 @@ You'll need 5 pieces of information:
 
 | Credential | Where to Find It |
 |------------|------------------|
-| **Private Key** | Export from your Polymarket account settings (if using Polymarket custodial wallet) OR from MetaMask if you connected an external wallet. This is the EOA wallet linked to your Polymarket account. |
+| **Private Key** | Export from your wallet app (MetaMask, Coinbase Wallet, etc.) or Polymarket account settings (if using custodial wallet). This is the EOA wallet linked to your Polymarket account. |
 | **Proxy Wallet Address** | Your Polymarket "Funder Address" - visible in your Polymarket deposit/withdraw page or account settings. This is NOT your EOA address. |
 | **Builder API Key** | [Polymarket Settings → Builder Codes](https://polymarket.com/settings?tab=builder) - Create a new API key |
 | **Builder API Secret** | Shown once when you create the API key (save it!) |
 | **Builder API Passphrase** | You set this when creating the API key |
 
 > ⚠️ **Important**: 
-> - **Private Key**: If you created a wallet through Polymarket, export it from your Polymarket account settings. If you connected MetaMask, export from MetaMask.
-> - **Proxy Wallet Address**: This is your Polymarket-specific "Funder Address" (starts with `0x`), NOT your EOA/MetaMask address. Find it in your Polymarket deposit/withdraw settings.
+> - **Private Key**: Polymarket supports most crypto wallets (MetaMask, Coinbase Wallet, WalletConnect, etc.). Export your private key from whichever wallet you connected to Polymarket. If you created a custodial wallet through Polymarket, export from your Polymarket account settings.
+> - **Proxy Wallet Address**: This is your Polymarket-specific "Funder Address" (starts with `0x`), NOT your EOA wallet address. Find it in your Polymarket deposit/withdraw settings.
 
 ---
 
@@ -100,7 +100,7 @@ The wizard will prompt you for:
 
 | Prompt | What to Enter |
 |--------|---------------|
-| Wallet private key | Your EOA private key (from Polymarket account or MetaMask) - starts with `0x` |
+| Wallet private key | Your EOA private key - export from your wallet (MetaMask, Coinbase Wallet, etc.) or Polymarket account if using custodial wallet. Starts with `0x`. |
 | Proxy wallet address | Your Polymarket Funder Address - starts with `0x` |
 | Builder API key | From [Polymarket Builder Codes](https://polymarket.com/settings?tab=builder) |
 | Builder API secret | The secret shown when you created the API key |
