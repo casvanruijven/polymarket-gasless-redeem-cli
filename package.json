@@ -7,8 +7,7 @@
   "scripts": {
     "setup": "node redeem.js --setup",
     "check": "node redeem.js --check",
-    "redeem": "node redeem.js",
-    "test": "node test_setup.js"
+    "redeem": "node redeem.js"
   },
   "dependencies": {
     "@polymarket/builder-relayer-client": "^0.0.8",
