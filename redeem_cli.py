@@ -54,16 +54,18 @@ def load_env_file():
 class RedemptionCLI:
     """Command-line interface for Polymarket redemption service."""
     
-    def __init__(self, interval_minutes: int = None, check_only: bool = False):
+    def __init__(self, interval_minutes: int = None, check_only: bool = False, password: str = None):
         """
         Initialize the redemption CLI.
         
         Args:
             interval_minutes: Interval in minutes for automatic redemption (None = one-time)
             check_only: If True, only check for redeemable positions without redeeming
+            password: Encryption password for automated mode
         """
         self.interval_minutes = interval_minutes
         self.check_only = check_only
+        self.password = password
         self._stop = asyncio.Event()
         self._task = None
         self._next_run_at = None
@@ -83,6 +85,11 @@ class RedemptionCLI:
     def _run_subprocess_sync(self, args: list) -> dict:
         """Run subprocess synchronously (called in a thread)."""
         try:
+            # Build environment, adding password if available
+            env = {**os.environ}
+            if self.password:
+                env['REDEEM_PASSWORD'] = self.password
+            
             result = subprocess.run(
                 args,
                 cwd=SCRIPT_DIR,
@@ -90,7 +97,7 @@ class RedemptionCLI:
                 text=True,
                 encoding='utf-8',
                 errors='replace',
-                env={**os.environ},
+                env=env,
                 timeout=115
             )
             return {
@@ -275,6 +282,17 @@ def check_key_setup():
         sys.exit(1)
 
 
+def prompt_password() -> str:
+    """Prompt user for encryption password."""
+    import getpass
+    try:
+        password = getpass.getpass("Enter encryption password: ")
+        return password
+    except (KeyboardInterrupt, EOFError):
+        print("\nCancelled.")
+        sys.exit(0)
+
+
 def main():
     """Main entry point."""
     # Load .env file before parsing arguments
@@ -359,10 +377,18 @@ For more information, see README.md
         print("Please ensure redeem.js is in the same directory as redeem_cli.py")
         sys.exit(1)
     
+    # Prompt for password (required for automated operation)
+    # Check environment first, then prompt
+    password = os.environ.get('REDEEM_PASSWORD')
+    if not password:
+        print("Password required to decrypt wallet credentials.")
+        password = prompt_password()
+    
     # Create and run CLI
     cli = RedemptionCLI(
         interval_minutes=interval_minutes,
-        check_only=args.check
+        check_only=args.check,
+        password=password
     )
     
     try:

@@ -224,7 +224,13 @@ async function main() {
       process.exit(1);
     }
 
-    keys = await keyManager.getKeys();
+    // Check for password in environment (for automated/interval mode)
+    const envPassword = process.env.REDEEM_PASSWORD;
+    if (envPassword) {
+      logger.debug("Using password from environment variable");
+    }
+    
+    keys = await keyManager.getKeys(envPassword);
     logger.info("Keys loaded successfully");
   } catch (error) {
     console.error("[ERROR] Failed to load keys:", error.message);

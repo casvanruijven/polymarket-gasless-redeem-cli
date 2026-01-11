@@ -169,6 +169,19 @@ Run redemption automatically every hour:
 python redeem_cli.py --interval 60
 ```
 
+> 💡 **Note**: The CLI prompts for your encryption password once at startup. The password is kept in memory for the session, so interval mode works automatically without re-prompting.
+
+#### Using Environment Variable (for scripts/services)
+
+For fully automated operation (e.g., systemd service), you can set the password via environment variable:
+
+```bash
+export REDEEM_PASSWORD="your_encryption_password"
+python redeem_cli.py --interval 15
+```
+
+> ⚠️ **Security Warning**: Only use `REDEEM_PASSWORD` in secured environments. The password is stored in memory during execution.
+
 #### Stop Automatic Service
 
 Press `Ctrl+C` to gracefully stop the service.
