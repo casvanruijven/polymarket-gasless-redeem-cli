@@ -3,7 +3,7 @@
 > A standalone command-line tool for automatically redeeming Polymarket positions using gasless transactions. Never pay gas fees again!
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -43,7 +43,7 @@
 Before you begin, ensure you have the following installed:
 
 - **Python 3.8+** (uses only standard library, no external dependencies)
-- **Node.js 16+** and npm
+- **Node.js 18+** and npm
 - **Polymarket Builder API credentials** (API key, secret, and passphrase)
 - **Wallet private key** and **proxy wallet address** (Funder Address)
 
@@ -76,28 +76,23 @@ This will install:
 - `ethers` - Ethereum library
 - `dotenv` - Environment variable management
 
-### Step 3: Configure Environment Variables
+### Step 3: Configure Encrypted Key Storage
 
-Create a `.env` file in the project root:
+Run the secure setup wizard to store your credentials:
 
 ```bash
-cp .env.example .env
+npm run setup
+# or
+node redeem.js --setup
 ```
 
-Then edit `.env` with your credentials:
+The wizard will prompt you for:
+- Your wallet private key
+- Your Polymarket proxy wallet address (Funder Address)
+- Your Builder API key, secret, and passphrase
+- A password to encrypt your credentials
 
-```env
-# Wallet Configuration
-PRIVATE_KEY=your_wallet_private_key_here
-FUNDER_ADDRESS=your_polymarket_proxy_wallet_address_here
-
-# Polymarket Builder API Credentials
-POLY_BUILDER_API_KEY=your_builder_api_key_here
-POLY_BUILDER_SECRET=your_builder_api_secret_here
-POLY_BUILDER_PASSPHRASE=your_builder_api_passphrase_here
-```
-
-> ⚠️ **Security Warning**: Never commit your `.env` file to version control! It should already be in `.gitignore`.
+> 🔐 **Security**: Your credentials are encrypted with AES-256-GCM and stored in `.encrypted_keys`. The password is required each time you run redemptions.
 
 ---
 
@@ -112,7 +107,7 @@ python redeem_cli.py --check
 ```
 
 This will:
-- ✅ Validate your environment variables
+- ✅ Verify your encrypted keys are set up
 - ✅ Connect to Polymarket's API
 - ✅ Check for redeemable positions
 - ✅ Display results without redeeming
@@ -215,15 +210,19 @@ Redemption complete! 3/3 successful
 
 ## ⚙️ Configuration
 
-### Environment Variables
+### Encrypted Key Storage
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PRIVATE_KEY` | Your wallet private key | ✅ Yes |
-| `FUNDER_ADDRESS` | Your Polymarket proxy wallet address | ✅ Yes |
-| `POLY_BUILDER_API_KEY` | Polymarket Builder API key | ✅ Yes |
-| `POLY_BUILDER_SECRET` | Polymarket Builder API secret | ✅ Yes |
-| `POLY_BUILDER_PASSPHRASE` | Polymarket Builder API passphrase | ✅ Yes |
+Credentials are stored securely using encrypted key storage. Run `node redeem.js --setup` to configure.
+
+### Optional Environment Variables
+
+These environment variables can optionally override default settings:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RPC_URL` | Polygon RPC endpoint | `https://polygon-rpc.com` |
+| `LOG_LEVEL` | Logging level (ERROR, WARN, INFO, DEBUG) | `INFO` |
+| `MAX_CONCURRENT_REDEMPTIONS` | Max parallel redemptions | `3` |
 
 ### File Structure
 
@@ -231,11 +230,14 @@ Redemption complete! 3/3 successful
 polymarket-gasless-redeem-cli/
 ├── redeem_cli.py          # Main Python CLI script
 ├── redeem.js              # Node.js redemption script
+├── config.js              # Configuration management
+├── keyManager.js          # Encrypted key storage
+├── rateLimiter.js         # API rate limiting
+├── utils.js               # Utility functions
 ├── package.json           # Node.js dependencies
 ├── requirements.txt       # Python dependencies (empty - uses stdlib)
 ├── README.md              # This file
-├── .env.example           # Environment variables template
-└── .env                   # Your environment variables (not in git)
+└── .encrypted_keys        # Your encrypted credentials (not in git)
 ```
 
 ---
@@ -355,13 +357,19 @@ stdout_logfile=/var/log/polymarket-gasless-redeem-cli.out.log
 - Ensure `node` command is available in your PATH
 - Restart your terminal after installation
 
-#### ❌ "Missing required environment variables"
+#### ❌ "Encrypted keys not configured"
 
 **Solution:**
-- Check that your `.env` file exists in the project root
-- Ensure variable names match exactly (case-sensitive)
-- Verify no extra spaces around `=` signs
-- Check that values don't have quotes unless needed
+- Run `node redeem.js --setup` to configure your credentials
+- Follow the setup wizard to enter your wallet and API credentials
+- Create a strong password to encrypt your keys
+
+#### ❌ "Invalid password or corrupted key file"
+
+**Solution:**
+- Verify you're entering the correct encryption password
+- If you forgot your password, delete `.encrypted_keys` and run setup again
+- Ensure the key file hasn't been modified or corrupted
 
 #### ❌ "Redemption script not found"
 
@@ -433,14 +441,14 @@ This version includes significant security improvements:
 
 ### Security Checklist
 
-- [ ] `.encrypted_keys` file is in `.gitignore`
-- [ ] Encryption password is strong and stored securely
-- [ ] Private keys are never logged or printed
-- [ ] API credentials are encrypted at rest
+- [x] `.encrypted_keys` file is in `.gitignore`
+- [ ] Encryption password is strong (8+ characters, mixed case, numbers, symbols)
+- [x] Private keys are never logged or printed
+- [x] API credentials are encrypted at rest with AES-256-GCM
 - [ ] Service runs with minimal permissions
-- [ ] Logs don't contain sensitive information
+- [x] Logs don't contain sensitive information
 - [ ] Regular security updates applied
-- [ ] Keys are backed up securely
+- [ ] Encrypted keys are backed up securely
 
 ### Key Management
 
