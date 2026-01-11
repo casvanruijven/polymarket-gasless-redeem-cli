@@ -15,7 +15,7 @@ import { BuilderConfig } from "@polymarket/builder-signing-sdk";
 import keyManager from "./keyManager.js";
 import { CONFIG, validateConfig, loadEnvironmentOverrides } from "./config.js";
 import { globalRateLimiter } from "./rateLimiter.js";
-import { retryWithBackoff, validators, logger, withTimeout, safeJsonParse, formatCurrency, sleep } from "./utils.js";
+import { retryWithBackoff, validators, logger, withTimeout, formatCurrency, sleep } from "./utils.js";
 
 // Load environment overrides
 loadEnvironmentOverrides();
@@ -82,8 +82,8 @@ async function getRedeemablePositions(walletAddress) {
   const byCondition = new Map();
 
   for (const pos of positions) {
-    // Validate position data
-    if (!pos.conditionId || !validators.isValidAddress(pos.conditionId)) {
+    // Validate position data (conditionId is bytes32, not address)
+    if (!pos.conditionId || !validators.isValidBytes32(pos.conditionId)) {
       logger.warn('Skipping invalid position', { position: pos });
       continue;
     }
@@ -125,7 +125,7 @@ async function getRedeemablePositions(walletAddress) {
  * Create CTF redeem transaction with validation
  */
 function createCtfRedeemTx(conditionId) {
-  if (!validators.isValidAddress(conditionId)) {
+  if (!validators.isValidBytes32(conditionId)) {
     throw new Error(`Invalid condition ID: ${conditionId}`);
   }
 
@@ -154,7 +154,7 @@ function createCtfRedeemTx(conditionId) {
  * Create NegRisk redeem transaction with validation
  */
 function createNegRiskRedeemTx(conditionId, amounts) {
-  if (!validators.isValidAddress(conditionId)) {
+  if (!validators.isValidBytes32(conditionId)) {
     throw new Error(`Invalid condition ID: ${conditionId}`);
   }
 

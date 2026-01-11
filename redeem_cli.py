@@ -264,27 +264,14 @@ class RedemptionCLI:
         self.log("Redemption CLI stopped")
 
 
-def validate_environment():
-    """Validate that required environment variables are set."""
-    required_vars = [
-        "PRIVATE_KEY",
-        "FUNDER_ADDRESS",
-        "POLY_BUILDER_API_KEY",
-        "POLY_BUILDER_SECRET",
-        "POLY_BUILDER_PASSPHRASE"
-    ]
-    
-    missing = []
-    for var in required_vars:
-        if not os.environ.get(var):
-            missing.append(var)
-    
-    if missing:
-        print("ERROR: Missing required environment variables:")
-        for var in missing:
-            print(f"  - {var}")
-        print("\nPlease set these in your .env file or environment.")
-        print("See .env.example for reference.")
+def check_key_setup():
+    """Check if encrypted keys have been set up."""
+    key_file = SCRIPT_DIR / ".encrypted_keys"
+    if not key_file.exists():
+        print("ERROR: Encrypted keys not configured.")
+        print("\nPlease run key setup first:")
+        print("  node redeem.js --setup")
+        print("\nThis will securely store your wallet credentials.")
         sys.exit(1)
 
 
@@ -310,12 +297,9 @@ Examples:
   # Automatic redemption every hour
   python redeem_cli.py --interval 60
 
-Environment Variables:
-  PRIVATE_KEY              - Your wallet private key
-  FUNDER_ADDRESS           - Your Polymarket proxy wallet address
-  POLY_BUILDER_API_KEY     - Polymarket Builder API key
-  POLY_BUILDER_SECRET      - Polymarket Builder API secret
-  POLY_BUILDER_PASSPHRASE  - Polymarket Builder API passphrase
+Setup:
+  Before first use, run: node redeem.js --setup
+  This securely stores your wallet credentials with encryption.
 
 For more information, see README.md
         """
@@ -351,8 +335,8 @@ For more information, see README.md
     else:
         interval_minutes = None
     
-    # Validate environment
-    validate_environment()
+    # Check key setup
+    check_key_setup()
     
     # Check if Node.js is available
     try:

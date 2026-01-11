@@ -4,6 +4,9 @@
   "description": "Gasless redemption CLI tool for Polymarket positions",
   "main": "redeem.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "setup": "node redeem.js --setup",
     "check": "node redeem.js --check",

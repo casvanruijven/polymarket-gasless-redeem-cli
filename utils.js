@@ -58,7 +58,14 @@ export const validators = {
   },
 
   /**
-   * Validate transaction hash
+   * Validate bytes32 (condition ID, parent collection ID, etc.)
+   */
+  isValidBytes32(hash) {
+    return /^0x[a-fA-F0-9]{64}$/.test(hash);
+  },
+
+  /**
+   * Validate transaction hash (alias for bytes32)
    */
   isValidTxHash(hash) {
     return /^0x[a-fA-F0-9]{64}$/.test(hash);
