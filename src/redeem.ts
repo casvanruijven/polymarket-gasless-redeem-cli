@@ -59,6 +59,9 @@ For more information, see README.md
   process.exit(0);
 }
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createWalletClient, http, type Hex, type WalletClient, type Account } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
@@ -72,6 +75,35 @@ import { TransactionManager, TransactionState } from './transactionManager.js';
 import { createCtfRedeemTx, createNegRiskRedeemTx, calculateRedeemAmounts } from './transactions.js';
 import { retryWithBackoff, validators, logger, withTimeout, formatCurrency, sleep } from './utils.js';
 import type { Position, RawPositionData, MainResult, RedemptionResult, EncryptedKeys } from './types.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REDEEMED_CACHE_FILE = path.join(__dirname, '..', '.redeemed_cache.json');
+
+/**
+ * Load the set of already-redeemed condition IDs from disk
+ */
+function loadRedeemedCache(): Set<string> {
+  try {
+    if (fs.existsSync(REDEEMED_CACHE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(REDEEMED_CACHE_FILE, 'utf8')) as string[];
+      return new Set(data);
+    }
+  } catch {
+    logger.warn('Failed to load redeemed cache, starting fresh');
+  }
+  return new Set();
+}
+
+/**
+ * Save redeemed condition IDs to disk
+ */
+function saveRedeemedCache(cache: Set<string>): void {
+  try {
+    fs.writeFileSync(REDEEMED_CACHE_FILE, JSON.stringify([...cache], null, 2));
+  } catch {
+    logger.warn('Failed to save redeemed cache');
+  }
+}
 
 // Check for help flag early (before config validation)
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -99,7 +131,7 @@ async function getRedeemablePositions(walletAddress: string): Promise<Position[]
     throw new Error(`Invalid wallet address: ${walletAddress}`);
   }
 
-  const url = `${CONFIG.api.dataApiUrl}/positions?user=${walletAddress}&sizeThreshold=0.01&redeemable=true&limit=100&offset=0`;
+  const url = `${CONFIG.api.dataApiUrl}/positions?user=${walletAddress}&sizeThreshold=0.10&redeemable=true&limit=100&offset=0`;
 
   logger.debug('Fetching redeemable positions', { url, walletAddress });
 
@@ -177,8 +209,9 @@ async function getRedeemablePositions(walletAddress: string): Promise<Position[]
     group.totalSize += outcome.size;
   }
 
-  const groupedPositions = Array.from(byCondition.values());
-  logger.info(`Grouped into ${groupedPositions.length} condition(s)`);
+  // Filter out positions with zero value (already redeemed or lost)
+  const groupedPositions = Array.from(byCondition.values()).filter(p => p.totalValue >= 0.01);
+  logger.info(`Grouped into ${groupedPositions.length} condition(s) with value`);
 
   return groupedPositions;
 }
@@ -317,11 +350,23 @@ async function main(): Promise<MainResult> {
   console.log(`EOA: ${account.address}`);
   console.log(`Proxy Wallet: ${keys.funderAddress}`);
 
+  // Load cache of already-redeemed conditions
+  const redeemedCache = loadRedeemedCache();
+
   // Get redeemable positions with retry logic
   console.log('\nFetching redeemable positions...');
   let positions: Position[];
   try {
-    positions = await getRedeemablePositions(keys.funderAddress);
+    let allPositions = await getRedeemablePositions(keys.funderAddress);
+
+    // Filter out already-redeemed conditions
+    const beforeFilter = allPositions.length;
+    allPositions = allPositions.filter(p => !redeemedCache.has(p.conditionId));
+    if (beforeFilter > allPositions.length) {
+      console.log(`Skipped ${beforeFilter - allPositions.length} already-redeemed position(s)`);
+    }
+
+    positions = allPositions;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERROR] Failed to fetch positions:', errorMsg);
@@ -480,6 +525,14 @@ async function main(): Promise<MainResult> {
   // Wait for all redemptions to complete
   const redemptionResults = await Promise.all(results);
   const successCount = redemptionResults.filter(r => r.success).length;
+
+  // Save successfully redeemed conditions to cache
+  for (let i = 0; i < positions.length; i++) {
+    if (redemptionResults[i]?.success) {
+      redeemedCache.add(positions[i]!.conditionId);
+    }
+  }
+  saveRedeemedCache(redeemedCache);
 
   console.log(`\n${'='.repeat(55)}`);
   console.log(`Redemption complete! ${successCount}/${positions.length} successful`);
