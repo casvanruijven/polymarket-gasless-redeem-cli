@@ -131,46 +131,64 @@ async function getRedeemablePositions(walletAddress: string): Promise<Position[]
     throw new Error(`Invalid wallet address: ${walletAddress}`);
   }
 
-  const url = `${CONFIG.api.dataApiUrl}/positions?user=${walletAddress}&sizeThreshold=0.10&redeemable=true&limit=100&offset=0`;
+  const PAGE_LIMIT = 100;
+  const allPositions: RawPositionData[] = [];
+  let offset = 0;
 
-  logger.debug('Fetching redeemable positions', { url, walletAddress });
+  // Paginate through all redeemable positions
+  while (true) {
+    const url = `${CONFIG.api.dataApiUrl}/positions?user=${walletAddress}&sizeThreshold=0.10&redeemable=true&limit=${PAGE_LIMIT}&offset=${offset}`;
 
-  const fetchFn = async (): Promise<RawPositionData[]> => {
-    const response = await withTimeout(
-      fetch(url, {
-        headers: {
-          'User-Agent': 'Polymarket-Redemption-CLI/2.0.0',
-          'Accept': 'application/json'
-        }
-      }),
-      CONFIG.api.timeout,
-      'Data API request timed out'
+    logger.debug('Fetching redeemable positions', { url, walletAddress, offset });
+
+    const fetchFn = async (): Promise<RawPositionData[]> => {
+      const response = await withTimeout(
+        fetch(url, {
+          headers: {
+            'User-Agent': 'Polymarket-Redemption-CLI/2.0.0',
+            'Accept': 'application/json'
+          }
+        }),
+        CONFIG.api.timeout,
+        'Data API request timed out'
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Data API error ${response.status}: ${errorText}`);
+      }
+
+      const data: unknown = await response.json();
+
+      // Validate response structure
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid API response: expected array of positions');
+      }
+
+      return data as RawPositionData[];
+    };
+
+    // Execute with rate limiting and retry logic
+    const page = await retryWithBackoff(
+      () => globalRateLimiter.executeWithRateLimit(fetchFn, 'Data API call'),
+      CONFIG.api.retries,
+      2000,
+      'Data API fetch'
     );
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Data API error ${response.status}: ${errorText}`);
+    allPositions.push(...page);
+    logger.info(`Fetched ${page.length} positions from API (offset=${offset}, total so far=${allPositions.length})`);
+
+    // If we got fewer than the limit, we've reached the last page
+    if (page.length < PAGE_LIMIT) {
+      break;
     }
 
-    const data: unknown = await response.json();
+    offset += PAGE_LIMIT;
+  }
 
-    // Validate response structure
-    if (!Array.isArray(data)) {
-      throw new Error('Invalid API response: expected array of positions');
-    }
-
-    return data as RawPositionData[];
-  };
-
-  // Execute with rate limiting and retry logic
-  const positions = await retryWithBackoff(
-    () => globalRateLimiter.executeWithRateLimit(fetchFn, 'Data API call'),
-    CONFIG.api.retries,
-    2000,
-    'Data API fetch'
-  );
-
-  logger.info(`Fetched ${positions.length} positions from API`);
+  logger.info(`Fetched ${allPositions.length} total positions from API`);
+  const positions = allPositions;
 
   // Group by conditionId - aggregate both outcomes for display and redemption
   const byCondition = new Map<string, Position>();
