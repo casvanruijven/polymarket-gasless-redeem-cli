@@ -60,7 +60,7 @@ export const CONFIG = {
   // Blockchain Configuration
   blockchain: {
     chainId: 137,
-    rpcUrl: 'https://polygon-rpc.com',
+    rpcUrl: 'https://polygon-bor-rpc.publicnode.com',
     gasLimit: 200000,
     confirmations: 1
   },
