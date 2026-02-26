@@ -97,7 +97,7 @@ export const CONFIG = {
   // Application
   app: {
     maxConcurrentRedemptions: 3,
-    redemptionDelay: 2000,
+    redemptionDelay: 5000,
     checkTimeout: 60,
     redeemTimeout: 120
   }

@@ -235,41 +235,6 @@ async function getRedeemablePositions(walletAddress: string): Promise<Position[]
 }
 
 /**
- * Simple semaphore for concurrency control
- */
-class Semaphore {
-  private maxConcurrent: number;
-  private current: number;
-  private waitQueue: Array<() => void>;
-
-  constructor(maxConcurrent: number) {
-    this.maxConcurrent = maxConcurrent;
-    this.current = 0;
-    this.waitQueue = [];
-  }
-
-  async acquire(): Promise<void> {
-    if (this.current < this.maxConcurrent) {
-      this.current++;
-      return;
-    }
-
-    return new Promise(resolve => {
-      this.waitQueue.push(resolve);
-    });
-  }
-
-  release(): void {
-    this.current--;
-    if (this.waitQueue.length > 0) {
-      this.current++;
-      const resolve = this.waitQueue.shift()!;
-      resolve();
-    }
-  }
-}
-
-/**
  * Main redemption function with enhanced security and reliability
  */
 async function main(): Promise<MainResult> {
@@ -453,51 +418,46 @@ async function main(): Promise<MainResult> {
     process.exit(1);
   }
 
-  // Redeem each condition with concurrency control
-  const semaphore = new Semaphore(CONFIG.app.maxConcurrentRedemptions);
-  const results: Promise<RedemptionResult>[] = [];
+  // Redeem each condition sequentially with retry on rate limit
+  const MAX_RETRIES = 3;
+  const redemptionResults: RedemptionResult[] = [];
+  let successCount = 0;
 
   for (let i = 0; i < positions.length; i++) {
     const pos = positions[i]!;
     const title = (pos.title || 'Unknown Market').substring(0, 30);
 
-    console.log(`${i + 1}/${positions.length}. Redeeming: ${title}`);
+    console.log(`\n${i + 1}/${positions.length}. Redeeming: ${title}`);
     console.log(`   Value: $${formatCurrency(pos.totalValue)}`);
 
-    // Use semaphore for concurrency control
-    await semaphore.acquire();
+    let result: RedemptionResult = { success: false, error: 'Not attempted' };
 
-    // Execute redemption with timeout and error handling
-    const redeemPromise = (async (): Promise<RedemptionResult> => {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         let tx;
         if (pos.negativeRisk) {
-          // For negative risk markets, calculate amounts for each outcome
           const sizes = pos.outcomes.map(o => o.size);
           const amounts = calculateRedeemAmounts(sizes);
           tx = createNegRiskRedeemTx(pos.conditionId, amounts);
-          console.log(`   NegRisk redeem, amounts: [${amounts.map(a => a.toString()).join(', ')}]`);
+          if (attempt === 0) console.log(`   NegRisk redeem, amounts: [${amounts.map(a => a.toString()).join(', ')}]`);
         } else {
-          // CTF binary: redeem both outcomes at once
           tx = createCtfRedeemTx(pos.conditionId);
-          console.log(`   CTF redeem (both outcomes)`);
+          if (attempt === 0) console.log(`   CTF redeem (both outcomes)`);
         }
 
-        // Execute via relayer with timeout
-        const executeWithTimeout = withTimeout(
+        if (attempt > 0) {
+          console.log(`   Retry ${attempt}/${MAX_RETRIES}...`);
+        }
+
+        const response = await withTimeout(
           client.execute([tx], `Redeem: ${title}`),
           CONFIG.app.redeemTimeout * 1000,
           'Relayer execution timed out'
         );
-
-        const response = await executeWithTimeout;
         console.log(`   Submitted, waiting for confirmation...`);
 
-        const result = await response.wait();
-        logger.debug('Transaction result', result);
-
-        // Type assertion for result
-        const txResult = result as { transactionHash?: string; state?: string } | null;
+        const txResult = await response.wait() as { transactionHash?: string; state?: string } | null;
+        logger.debug('Transaction result', txResult);
 
         if (txResult?.transactionHash) {
           const txUrl = `https://polygonscan.com/tx/${txResult.transactionHash}`;
@@ -505,52 +465,58 @@ async function main(): Promise<MainResult> {
           if (txResult.state === TransactionState.STATE_FAILED) {
             console.log(`   FAILED ON-CHAIN! Tx: ${txResult.transactionHash}`);
             console.log(`   ${txUrl}`);
-            return { success: false, txHash: txResult.transactionHash as Hex, url: txUrl };
+            result = { success: false, txHash: txResult.transactionHash as Hex, url: txUrl };
           } else {
             console.log(`   SUCCESS! Tx: ${txResult.transactionHash}`);
             console.log(`   ${txUrl}`);
-            return { success: true, txHash: txResult.transactionHash as Hex, url: txUrl };
+            result = { success: true, txHash: txResult.transactionHash as Hex, url: txUrl };
           }
         } else {
           console.log(`   FAILED - no transaction hash returned`);
-          return { success: false, error: 'No transaction hash' };
+          result = { success: false, error: 'No transaction hash' };
         }
+
+        // Don't retry on-chain failures or successes — only retry on submission errors
+        break;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        console.log(`   ERROR: ${errorMsg}`);
+        const isRateLimit = /rate.?limit|429|too many|quota|throttl/i.test(errorMsg);
 
-        // Check if error has transactionHash property
+        if (isRateLimit && attempt < MAX_RETRIES) {
+          const backoffMs = Math.min(10000 * Math.pow(2, attempt), 60000);
+          console.log(`   Rate limited! Waiting ${Math.ceil(backoffMs / 1000)}s before retry...`);
+          await sleep(backoffMs);
+          continue;
+        }
+
+        console.log(`   ERROR: ${errorMsg}`);
         const errorWithTx = error as { transactionHash?: string };
         if (errorWithTx.transactionHash) {
           console.log(`   Tx: https://polygonscan.com/tx/${errorWithTx.transactionHash}`);
         }
 
         logger.error('Redemption failed', { error: errorMsg, conditionId: pos.conditionId });
-        return { success: false, error: errorMsg };
-      } finally {
-        semaphore.release();
+        result = { success: false, error: errorMsg };
+        break;
       }
-    })();
+    }
 
-    results.push(redeemPromise);
+    redemptionResults.push(result);
 
-    // Add delay between redemptions to avoid overwhelming the relayer
+    // Save to cache immediately after each successful redemption
+    if (result.success) {
+      successCount++;
+      redeemedCache.add(pos.conditionId);
+      saveRedeemedCache(redeemedCache);
+    }
+
+    // Delay between redemptions to avoid hitting rate limits
     if (i < positions.length - 1) {
-      await sleep(CONFIG.app.redemptionDelay);
+      const delayMs = CONFIG.app.redemptionDelay;
+      console.log(`   Waiting ${delayMs / 1000}s before next...`);
+      await sleep(delayMs);
     }
   }
-
-  // Wait for all redemptions to complete
-  const redemptionResults = await Promise.all(results);
-  const successCount = redemptionResults.filter(r => r.success).length;
-
-  // Save successfully redeemed conditions to cache
-  for (let i = 0; i < positions.length; i++) {
-    if (redemptionResults[i]?.success) {
-      redeemedCache.add(positions[i]!.conditionId);
-    }
-  }
-  saveRedeemedCache(redeemedCache);
 
   console.log(`\n${'='.repeat(55)}`);
   console.log(`Redemption complete! ${successCount}/${positions.length} successful`);
